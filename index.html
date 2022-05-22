@@ -1,0 +1,288 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+    <style>
+        html,body {
+            height: 100%;
+            width: 100%;
+            margin: 0;
+        }
+        #canBox{
+        flex: 1;
+        overflow: hidden;
+        width: 100%;
+        height: 100%;
+        /*position:absolute;*/
+        pointer-events: none;
+        z-index: 2;
+    }
+    </style>
+</head>
+<body>
+
+    <div id="canBox">
+        <canvas id="画布0"></canvas>
+    </div>
+    
+    <canvas id="画布1"></canvas>
+    <canvas id="画布2"></canvas>
+<script>
+
+var getRandomInt=(min, max)=>{
+  min = Math.ceil(min);
+  max = Math.floor(max);
+  return Math.floor(Math.random() * (max - min)) + min; //不含最大值，含最小值
+}
+
+
+
+
+
+var 画布0Dom=document.getElementById("画布0");
+var 画布1Dom=document.getElementById("画布1");
+var 画布2Dom=document.getElementById("画布2");
+
+var 所有画布=[画布0Dom,画布1Dom,画布2Dom];
+
+var 画布0=画布0Dom.getContext('2d');
+var 画布1=画布1Dom.getContext('2d');
+var 画布2=画布2Dom.getContext('2d');
+
+var 适应大小=()=>{
+	像素比=devicePixelRatio;
+	画布高=canBox.clientHeight*像素比;
+	画布宽=canBox.clientWidth*像素比;
+
+    var 画布0像素=画布0.getImageData(0,0,画布宽,画布高);
+    
+    for(let i=0;i<所有画布.length;i++){
+        let 画布Dom=所有画布[i];
+
+        画布Dom.width=画布宽;
+        画布Dom.height=画布高;
+        
+        画布Dom.style.width=画布宽/像素比+'px';
+        画布Dom.style.height=画布高/像素比+'px';
+    }
+
+    画布0.putImageData(画布0像素,0,0);
+}
+适应大小();
+window.onresize=适应大小;
+/*
+// Set line width
+画布1.lineWidth = 10;
+
+//画布1.fillRect(0, 0, 10, 10);
+
+// Wall
+画布1.strokeRect(75, 140, 150, 110);
+
+// Door
+画布1.fillRect(130, 190, 40, 60);
+
+// Roof
+画布1.beginPath();
+画布1.moveTo(50, 140);
+画布1.lineTo(150, 60);
+画布1.lineTo(250, 140);
+画布1.closePath();
+画布1.stroke();
+
+画布2.font = "80px serif";
+画布2.fillText("Hello World",10,70);
+
+/*/
+
+
+画布1.font = "80px serif";
+画布1.fillText("Hello",10,70);
+
+画布2.font = "80px serif";
+画布2.fillText("World",10,70);
+//*/
+
+var 起始像素=画布1.getImageData(0,0,画布宽,画布高);
+var 结束像素=画布2.getImageData(0,0,画布宽,画布高);
+
+var 计算对应像素=(起始像素,结束像素)=>{
+
+    画布0.putImageData(起始像素,0,0);
+
+    var 起始像素_=[];
+    var 结束像素_=[];
+
+    var 宽=画布宽;
+
+    //画布为黑白, 取透明度
+    var f1=[[起始像素,起始像素_],[结束像素,结束像素_]];
+    for(let i=0;i<f1.length;i++){
+        let xs=f1[i];
+        for(let i=3;i<xs[0].data.length;i+=4){
+            if(xs[0].data[i]!=0){
+                let i_=(i+1)/4;
+                let x=i_%宽;
+                let y=Math.floor(i_/宽);
+                xs[1].push([x,y]);
+            }
+        }
+        xs[1].sort((a,b)=>{
+            let d=(a[0]**2+a[1]**2)-(b[0]**2+b[1]**2);
+            if(d==0){
+                let e=a[0]-b[0];
+                if(e==0){
+                    return a[1]-b[1];
+                }
+                return b;
+            }
+            return d;
+        });
+    }
+
+    var 较少像素,较多像素,对应类型;
+    if(起始像素_.length>结束像素_.length){
+        较少像素=结束像素_;
+        较多像素=起始像素_;
+        对应类型=1;
+    }else{
+        较少像素=起始像素_;
+        较多像素=结束像素_;
+        对应类型=0;
+    }
+
+
+
+    var 少比多=较少像素.length/较多像素.length;
+
+    var 较少像素_=[]
+    if(少比多>0){
+        for(let i=0;i<较多像素.length;i++){
+            let 较少像素坐标=较少像素[parseInt(i*少比多)];
+            较少像素_.push(较少像素坐标);
+        }
+    }else{
+        for(let i=0;i<较多像素.length;i++){
+            let x=getRandomInt(0,画布宽);
+            let y=getRandomInt(0,画布高);
+            较少像素_.push([x,y]);
+        }
+    }
+
+    //将 较多像素 均匀地对应到 较少像素.
+    var 像素_对应=[];
+    for(let i=0;i<较多像素.length;i++){
+        let 较多像素坐标=较多像素[i];
+        //let 较少像素坐标=较少像素[parseInt(i*少比多)];
+
+        let 较多像素坐标_x=较多像素坐标[0];
+        let 较多像素坐标_y=较多像素坐标[1];
+
+        let 较少像素坐标_x,较少像素坐标_y
+
+        let 较少像素坐标=较少像素_.shift();
+
+        较少像素坐标_x=较少像素坐标[0];
+        较少像素坐标_y=较少像素坐标[1];
+
+
+        if(对应类型){
+            开始像素坐标_x=较多像素坐标_x;
+            开始像素坐标_y=较多像素坐标_y;
+            结束像素坐标_x=较少像素坐标_x;
+            结束像素坐标_y=较少像素坐标_y;
+        }else{
+            开始像素坐标_x=较少像素坐标_x;
+            开始像素坐标_y=较少像素坐标_y;
+            结束像素坐标_x=较多像素坐标_x;
+            结束像素坐标_y=较多像素坐标_y;
+        }
+        let 随机x=getRandomInt(开始像素坐标_x,结束像素坐标_x);
+        let 随机y=getRandomInt(开始像素坐标_y,结束像素坐标_y);
+        像素_对应.push([开始像素坐标_x,开始像素坐标_y,随机x,随机y,结束像素坐标_x,结束像素坐标_y,随机x-开始像素坐标_x,随机y-开始像素坐标_y,结束像素坐标_x-随机x,结束像素坐标_y-随机y]);
+
+    }
+    return 像素_对应;
+}
+
+var Expo_1_easeInOut=(t)=>{
+            if (t==0) return 0;
+            if (t==1) return 1;
+            if ((t /= 0.5) < 1) return 0.5 * Math.pow(2, 10 * (t - 1));
+            return 0.5 * (-Math.pow(2, -10 * --t) + 2);
+}
+
+var Quart_1_easeInOut=(t)=>{
+            if ((t /= 0.5) < 1) return 0.5 * t**5;
+            return 0.5*((t -= 2) * t**4 + 2);
+}
+
+var 两点连线t点坐标=(p0x,p0y,p1x,p1y,t)=>{
+    let x=p0x+t*(p1x-p0x);
+    let y=p0y+t*(p1y-p0y);
+    return [x,y];
+}
+
+var 时间=0;
+
+var start;
+var 动画=(timestamp)=>{
+    if (start === undefined){
+        start = timestamp;
+    }
+    const elapsed = timestamp - start;
+    时间+=0.000002*elapsed;
+    if(时间<=1){    
+        requestAnimationFrame(动画);
+    }else{
+        时间=1;
+        start=undefined;
+    }
+    
+    var 显示像素=画布0.createImageData(画布宽,画布高);
+    for(let i=0;i<像素_对应.length;i++){
+        let 对应=像素_对应[i];
+        let x,y;
+        let 时间_=Quart_1_easeInOut(时间);
+        //用三阶贝塞尔曲线计算路径
+        let d1=两点连线t点坐标(对应[0],对应[1],对应[2],对应[3],时间_);
+        let d2=两点连线t点坐标(对应[2],对应[3],对应[4],对应[5],时间_);
+        let d=两点连线t点坐标(d1[0],d1[1],d2[0],d2[1],时间_);
+        x=Math.round(d[0]);
+        y=Math.round(d[1]);
+
+        //*/
+        显示像素.data[(y*画布宽+x)*4-1]=255
+
+    }
+
+    画布0.putImageData(显示像素,0,0);
+
+    
+}
+
+var 请求动画=()=>{
+    requestAnimationFrame(动画);
+}
+
+var 改变图像=(ImgD)=>{
+    var 起始像素=画布0.getImageData(0,0,画布宽,画布高);
+    像素_对应=计算对应像素(起始像素,ImgD);
+    if(时间==1){
+        时间=0;
+        请求动画();
+    }
+    时间=0;
+}
+
+像素_对应=计算对应像素(起始像素,结束像素);
+
+
+
+请求动画()
+
+</script>
+</body>
+</html>
